@@ -31,6 +31,8 @@ namespace Magnet
         public List<Coin> allCoins;
         
         public List<Coin> currentCoinsInHook = new List<Coin>();
+
+        public MeshCollider colliderTube;
         
         private float startYPos;
     
@@ -146,6 +148,8 @@ namespace Magnet
         private IEnumerator DropingRope()
         {
             posesForCoin.ToList().ForEach(x => x.IsBusy = false);
+
+            colliderTube.enabled = false;
             
             GotStartPosition = false;
         
@@ -175,8 +179,6 @@ namespace Magnet
 
                 coin.transform.SetParent(randPos.transform);
 
-                coin.IsGravity = false;
-                
                 coin.transform.localPosition = Vector3.zero;
                 
                 coin.transform.localEulerAngles = Vector3.zero;
@@ -192,6 +194,8 @@ namespace Magnet
 
             CurrentTypeMove = TypeMove.GoingBack;
         
+            colliderTube.enabled = true;
+            
             yield return new WaitUntil(() => GotStartPosition);
 
             yield return new WaitForSeconds(2f);

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using Magnet;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -11,8 +12,54 @@ namespace Element
 
         public bool IsInFly => !Hooker.instance.allCoins.Contains(this);
         
-        private bool isGravity;
+        private bool isGravity; 
+        
+        [ContextMenu("Save Position")]
+        private void SavePosition()
+        {
+            var gameObjectName = gameObject.name;
+            
+            var position = transform.position;
 
+            PlayerPrefs.SetFloat("x" + gameObjectName, position.x);
+            
+            PlayerPrefs.SetFloat("y" + gameObjectName, position.y);
+            
+            PlayerPrefs.SetFloat("z" + gameObjectName, position.z);
+
+            var rotation = transform.eulerAngles;
+            
+            PlayerPrefs.SetFloat("xR" + gameObjectName, rotation.x);
+            
+            PlayerPrefs.SetFloat("yR" + gameObjectName, rotation.y);
+            
+            PlayerPrefs.SetFloat("zR" + gameObjectName, rotation.z);
+        }
+
+        [ContextMenu("Set Position")]
+        private void SetPosition()
+        {
+            var gameObjectName = gameObject.name;
+            
+            var pos = new Vector3()
+            {
+                x = PlayerPrefs.GetFloat("x" + gameObjectName),
+                y = PlayerPrefs.GetFloat("y" + gameObjectName),
+                z = PlayerPrefs.GetFloat("z" + gameObjectName)
+            };
+
+            transform.position = pos;
+            
+            var rot = new Vector3()
+            {
+                x = PlayerPrefs.GetFloat("xR" + gameObjectName),
+                y = PlayerPrefs.GetFloat("yR" + gameObjectName),
+                z = PlayerPrefs.GetFloat("zR" + gameObjectName)
+            };
+
+            transform.eulerAngles = rot;
+        }
+        
         private void Start()
         {
             var childCount = transform.childCount - 1;
@@ -42,17 +89,20 @@ namespace Element
             {
                 var otherCoin = otherObject.GetComponent<Coin>();
                 
-                var isRightCoin = otherCoin.IsGravity && !otherCoin.IsInFly;
+                var isRightCoin = !otherCoin.IsGravity && !otherCoin.IsInFly;
                 
                 if (!isRightCoin)
                     return;
-            }else if (!isDownFloor)
+            }
+            else if (!isDownFloor)
             {
                 return;
             }
 
             transform.SetParent(Hooker.instance.parentCoins);
-            
+
+            StartCoroutine(WaitStopGravity());
+
             Hooker.instance.allCoins.Add(this);
         }
 
@@ -77,6 +127,13 @@ namespace Element
                     Destroy(rb);
                 }
             }
-        }    
+        }
+
+        private IEnumerator WaitStopGravity()
+        {
+            yield return new WaitForSeconds(5);
+            
+            IsGravity = false;
+        }
     }
 }

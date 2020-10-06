@@ -19,7 +19,7 @@ public class GetterCoinsTrigger : MonoBehaviour
 
         if (!coinController.IsInFly)
             return;
-
+        
         currentScore++;
         
         Destroy(coinController.gameObject);
@@ -28,6 +28,8 @@ public class GetterCoinsTrigger : MonoBehaviour
 
         if (effectGot.isPlaying)
             return;
+        
+        SoundControl.Instance.PlayGotSound();
         
         effectGot.Play();
     }
