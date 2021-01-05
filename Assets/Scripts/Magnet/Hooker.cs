@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Element;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Magnet
 {
@@ -27,21 +28,25 @@ namespace Magnet
         public float endYPos = -4;
 
         public PoseForCoin[] posesForCoin;
-        
+
         public List<Coin> allCoins;
-        
+
         public List<Coin> currentCoinsInHook = new List<Coin>();
 
         public MeshCollider colliderTube;
-        
+
         private float startYPos;
-    
+
         public static Hooker instance;
 
+        [SerializeField] private BoxCollider stopHook;
+
+        [SerializeField] private Button interactButton;
+
         public PoseForCoin[] FreePosesForCoin => posesForCoin.Where(x => !x.IsBusy).ToArray();
-        
+
         public TypeMove CurrentTypeMove { get; private set; }
-    
+
         public bool GotStartPosition { get; set; }
 
         private void Awake()
@@ -52,7 +57,7 @@ namespace Magnet
         private void Start()
         {
             startYPos = ropeHolder.position.y;
-            
+
             for (var i = 0; i < parentCoins.childCount; i++)
                 allCoins.Add(parentCoins.GetChild(i).GetComponent<Coin>());
         }
@@ -65,19 +70,20 @@ namespace Magnet
         private void FixedUpdate()
         {
             FollowMagnet();
-        
+
             GoingDown();
-        
+
             GoingUp();
-            
+
             CheckingGetCoins();
         }
 
         private void FollowMagnet()
         {
-            if (CurrentTypeMove != TypeMove.FollowMagnet && CurrentTypeMove != TypeMove.GoingBack)
+            if (CurrentTypeMove != TypeMove.FollowMagnet && CurrentTypeMove != TypeMove.GoingBack &&
+                CurrentTypeMove != TypeMove.BackPosition)
                 return;
-        
+
             var ropePosition = ropeHolder.position;
 
             var magnetPosition = magnetToFollow.position;
@@ -95,7 +101,7 @@ namespace Magnet
                 return;
 
             var ropePosition = ropeHolder.position;
-        
+
             ropePosition += Vector3.down * hookSpeed * Time.deltaTime;
 
             ropeHolder.position = ropePosition;
@@ -105,9 +111,9 @@ namespace Magnet
         {
             if (CurrentTypeMove != TypeMove.GoingUp)
                 return;
-        
+
             var ropePosition = ropeHolder.position;
-        
+
             ropePosition += Vector3.up * hookSpeed * Time.deltaTime;
 
             ropeHolder.position = ropePosition;
@@ -126,9 +132,9 @@ namespace Magnet
 
                 var isRightDistance = distance <= distanceToGetCoin;
 
-                if (!isRightDistance) 
+                if (!isRightDistance)
                     continue;
-                
+
                 var randPos = FreePosesForCoin[Random.Range(0, FreePosesForCoin.Length)];
 
                 randPos.IsBusy = true;
@@ -136,42 +142,42 @@ namespace Magnet
                 coin.transform.position = randPos.Position;
 
                 coin.transform.SetParent(randPos.transform);
-                
+
                 coin.transform.localPosition = Vector3.zero;
-                
+
                 coin.transform.localEulerAngles = Vector3.zero;
-                
+
                 currentCoinsInHook.Add(coin);
             }
         }
 
         private IEnumerator DropingRope()
         {
+            interactButton.interactable = false;
+
             posesForCoin.ToList().ForEach(x => x.IsBusy = false);
 
-            colliderTube.enabled = false;
-            
             GotStartPosition = false;
-        
+
             CurrentTypeMove = TypeMove.GoingDown;
 
             yield return new WaitUntil(() => ropeHolder.position.y <= endYPos);
 
             CurrentTypeMove = TypeMove.WaitingHook;
-            
-            allCoins = allCoins.OrderBy(x => 
+
+            allCoins = allCoins.Where(x => x != null).OrderBy(x =>
                 Vector3.Distance(hooker.position, x.transform.position)).ToList();
 
             yield return new WaitForSeconds(Random.Range(.1f, .2f));
 
-            for (var i = 0; i < Random.Range(3, FreePosesForCoin.Length); i++)
+            for (var i = 0; i < 1; i++)
             {
                 var coin = allCoins[i];
-                
+
                 if (Vector2.Distance(hooker.position, coin.transform.position) > distanceToGetCoin)
                     continue;
-                
-                var randPos = FreePosesForCoin[Random.Range(0, FreePosesForCoin.Length)];
+
+                var randPos = FreePosesForCoin[0];
 
                 randPos.IsBusy = true;
 
@@ -180,25 +186,25 @@ namespace Magnet
                 coin.transform.SetParent(randPos.transform);
 
                 coin.transform.localPosition = Vector3.zero;
-                
+
                 coin.transform.localEulerAngles = Vector3.zero;
-                
+
                 currentCoinsInHook.Add(coin);
             }
-        
+
             yield return new WaitForSeconds(offsetWaitToHook);
-        
+
             CurrentTypeMove = TypeMove.GoingUp;
-        
+
             yield return new WaitUntil(() => ropeHolder.position.y >= startYPos);
 
             CurrentTypeMove = TypeMove.GoingBack;
-        
-            colliderTube.enabled = true;
-            
+
             yield return new WaitUntil(() => GotStartPosition);
 
             yield return new WaitForSeconds(2f);
+
+            // colliderTube.enabled = false;
 
             foreach (var coin in currentCoinsInHook)
             {
@@ -206,12 +212,22 @@ namespace Magnet
 
                 allCoins.Remove(coin);
             }
-            
+
             currentCoinsInHook.Clear();
-            
+
+            GotStartPosition = false;
+
+            CurrentTypeMove = TypeMove.BackPosition;
+
+            yield return new WaitUntil(() => GotStartPosition);
+
             yield return new WaitForSeconds(1);
-            
+
             CurrentTypeMove = TypeMove.FollowMagnet;
+
+            interactButton.interactable = true;
+
+            colliderTube.enabled = true;
         }
 
         public enum TypeMove
@@ -220,8 +236,8 @@ namespace Magnet
             GoingDown,
             GoingUp,
             WaitingHook,
-            GoingBack
+            GoingBack,
+            BackPosition
         }
-    
     }
 }

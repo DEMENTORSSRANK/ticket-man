@@ -22,6 +22,8 @@ namespace Magnet
     
         public Vector2 startPos;
 
+        public Vector2 backPos;
+
         private static FixedJoystick Joystick => FixedJoystick.Instance;
     
         private static Hooker Hooker => Hooker.instance;
@@ -31,6 +33,8 @@ namespace Magnet
             DoMove();
         
             GoingToStartPos();
+            
+            GoingBackPosition();
         }
 
         private void GoingToStartPos()
@@ -41,6 +45,31 @@ namespace Magnet
             var liningPosition = lining.position;
         
             var targetPosition = new Vector3(startPos.x, liningPosition.y, startPos.y);
+        
+            liningPosition = Vector3.MoveTowards(liningPosition, targetPosition, 
+                moveSpeed * Time.deltaTime);
+        
+            lining.position = liningPosition;
+
+            // Update mover pos
+            var moverPosition = mover.position;
+
+            moverPosition.x = liningPosition.x;
+
+            mover.position = moverPosition;
+
+            if (liningPosition == targetPosition)
+                Hooker.instance.GotStartPosition = true;
+        }
+
+        private void GoingBackPosition()
+        {
+            if (Hooker.CurrentTypeMove != Hooker.TypeMove.BackPosition)
+                return;
+
+            var liningPosition = lining.position;
+        
+            var targetPosition = new Vector3(backPos.x, liningPosition.y, backPos.y);
         
             liningPosition = Vector3.MoveTowards(liningPosition, targetPosition, 
                 moveSpeed * Time.deltaTime);

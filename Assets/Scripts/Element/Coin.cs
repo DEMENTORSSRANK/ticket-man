@@ -8,11 +8,64 @@ namespace Element
 {
     public class Coin : MonoBehaviour
     {
+        public int Coins { get; private set; }
+        
         private Collider Collider => GetComponent<Collider>();
 
         public bool IsInFly => !Hooker.instance.allCoins.Contains(this);
+
+        public int Index { get; private set; }
         
-        private bool isGravity; 
+        private bool isGravity;
+
+        private readonly int[] denominations =
+        {
+            1,
+            20,
+            50,
+            100
+        };
+
+        public bool IsGravity
+        {
+            get => isGravity;
+
+            set
+            {
+                isGravity = value;
+
+                if (value)
+                {
+                    gameObject.AddComponent<Rigidbody>();
+                }
+                else
+                {
+                    var rb = gameObject.GetComponent<Rigidbody>();
+
+                    rb.velocity = Vector3.zero;
+
+                    Destroy(rb);
+                }
+            }
+        }
+
+        public void SetDenomination(int index)
+        {
+            Index = index;
+
+            var childCount = transform.childCount - 1;
+
+            for (var i = 0; i < childCount; i++)
+                transform.GetChild(i).gameObject.SetActive(false);
+            
+            if (index > denominations.Length)
+                throw new Exception($"No denomination for {index} index");
+
+            // Set current coins
+            Coins = denominations[index];
+
+            transform.GetChild(index).gameObject.SetActive(true);
+        }
         
         [ContextMenu("Save Position")]
         private void SavePosition()
@@ -59,17 +112,10 @@ namespace Element
 
             transform.eulerAngles = rot;
         }
-        
+
         private void Start()
         {
-            var childCount = transform.childCount - 1;
-            
-            for (var i = 0; i < childCount; i++)
-                transform.GetChild(i).gameObject.SetActive(false);
-            
-            var indexSet = Random.Range(0, childCount);
-            
-            transform.GetChild(indexSet).gameObject.SetActive(true);
+           
         }
 
         private void OnCollisionEnter(Collision other)
@@ -104,29 +150,6 @@ namespace Element
             StartCoroutine(WaitStopGravity());
 
             Hooker.instance.allCoins.Add(this);
-        }
-
-        public bool IsGravity
-        {
-            get => isGravity;
-
-            set
-            {
-                isGravity = value;
-
-                if (value)
-                {
-                    gameObject.AddComponent<Rigidbody>();
-                }
-                else
-                {
-                    var rb = gameObject.GetComponent<Rigidbody>();
-
-                    rb.velocity = Vector3.zero;
-
-                    Destroy(rb);
-                }
-            }
         }
 
         private IEnumerator WaitStopGravity()
